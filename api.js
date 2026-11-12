@@ -70,7 +70,7 @@ function friendlyError(action, error) {
 
 /* ---------- Rendering ---------- */
 
-// User text is always inserted with textContent, never innerHTML.
+// User text is always inserted with textContent, so it can never be run as HTML or code.
 function createNoteItem(note) {
   const item = document.createElement("li");
   item.className = "note";
