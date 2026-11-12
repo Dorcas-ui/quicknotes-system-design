@@ -148,6 +148,21 @@ input[aria-invalid="true"] {
   color: #3e4c59;
 }
 
+.note .delete-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  background: #dc2626;
+}
+
+.note .delete-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.note .delete-btn:disabled {
+  background: #9aa5b1;
+}
+
 .empty {
   padding: 1rem;
   text-align: center;

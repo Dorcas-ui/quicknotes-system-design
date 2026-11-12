@@ -29,6 +29,9 @@ function setBusy(busy) {
   isBusy = busy;
   loadBtn.disabled = busy;
   submitBtn.disabled = busy;
+  notesList.querySelectorAll(".delete-btn").forEach((button) => {
+    button.disabled = busy;
+  });
 }
 
 /* ---------- Reusable request helper ---------- */
@@ -78,7 +81,15 @@ function createNoteItem(note) {
   const body = document.createElement("p");
   body.textContent = note.body || "";
 
-  item.append(title, body);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "delete-btn";
+  deleteBtn.textContent = "Delete";
+  deleteBtn.disabled = isBusy;
+  deleteBtn.setAttribute("aria-label", `Delete note: ${note.title}`);
+
+  item.dataset.id = note.id;
+  item.append(title, body, deleteBtn);
   return item;
 }
 
@@ -186,8 +197,57 @@ async function createNote(event) {
   }
 }
 
+/* ---------- DELETE: remove a note ---------- */
+
+// IMPORTANT: JSONPlaceholder is a fake API. It accepts POST and DELETE requests and
+// answers with realistic status codes, but it never really stores or removes anything.
+//   - A note we "create" is not saved: the server only returns it with a made-up id
+//     (always 101), so every new note has the same id.
+//   - A DELETE returns 200 even though nothing changes on the server.
+// To keep the page behaving like a real app, our approach is:
+//   1. Send the DELETE request and wait for a successful response.
+//   2. Only then remove that note from the list on the page.
+//   3. Remove the note by its <li> element, not by id, because several new notes can
+//      share the id 101 and we must delete only the one the user clicked.
+// Because nothing is saved, clicking "Load notes" again brings back the original ten
+// notes, and notes created in this session disappear. A real backend would persist both.
+async function deleteNote(item) {
+  if (isBusy) {
+    return;
+  }
+
+  setBusy(true);
+  showStatus("Deleting note...", "loading");
+
+  try {
+    const { status } = await request(`${API_URL}/${item.dataset.id}`, {
+      method: "DELETE",
+    });
+
+    item.remove();
+    if (notesList.children.length === 0) {
+      showEmptyState();
+    }
+    showStatus(`Note deleted (status ${status}).`, "success");
+  } catch (error) {
+    console.error(error);
+    showStatus(friendlyError("delete the note", error), "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
+// One listener on the list handles every Delete button (event delegation).
+function handleListClick(event) {
+  const button = event.target.closest(".delete-btn");
+  if (button) {
+    deleteNote(button.closest(".note"));
+  }
+}
+
 /* ---------- Start-up ---------- */
 
 loadBtn.addEventListener("click", loadNotes);
 noteForm.addEventListener("submit", createNote);
+notesList.addEventListener("click", handleListClick);
 renderNotes([]); // show the empty state before anything is loaded
