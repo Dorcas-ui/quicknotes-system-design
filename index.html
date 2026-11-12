@@ -15,6 +15,18 @@
     <button id="load-btn" type="button">Load notes</button>
     <p id="status" role="status" aria-live="polite"></p>
 
+    <form id="note-form" novalidate>
+      <h2>Add a note</h2>
+
+      <label for="title-input">Title <span class="hint">(required, max 100 characters)</span></label>
+      <input id="title-input" name="title" type="text" autocomplete="off">
+
+      <label for="body-input">Body <span class="hint">(optional)</span></label>
+      <textarea id="body-input" name="body" rows="4"></textarea>
+
+      <button id="submit-btn" type="submit">Add note</button>
+    </form>
+
     <ul id="notes-list"></ul>
   </main>
 </body>

@@ -4,9 +4,15 @@
 // The real QuickNotes API that the backend team will build is described in docs/api-design.md.
 const API_URL = "https://jsonplaceholder.typicode.com/posts";
 
+const MAX_TITLE_LENGTH = 100;
+
 const loadBtn = document.getElementById("load-btn");
 const statusEl = document.getElementById("status");
 const notesList = document.getElementById("notes-list");
+const noteForm = document.getElementById("note-form");
+const titleInput = document.getElementById("title-input");
+const bodyInput = document.getElementById("body-input");
+const submitBtn = document.getElementById("submit-btn");
 
 let isBusy = false;
 
@@ -22,6 +28,7 @@ function showStatus(message, type) {
 function setBusy(busy) {
   isBusy = busy;
   loadBtn.disabled = busy;
+  submitBtn.disabled = busy;
 }
 
 /* ---------- Reusable request helper ---------- */
@@ -82,6 +89,15 @@ function showEmptyState() {
   notesList.append(item);
 }
 
+// Adds one note at the top of the list (and removes the empty-state message).
+function addNoteToTop(note) {
+  const emptyItem = notesList.querySelector(".empty");
+  if (emptyItem) {
+    emptyItem.remove();
+  }
+  notesList.prepend(createNoteItem(note));
+}
+
 function renderNotes(notes) {
   notesList.replaceChildren();
   if (notes.length === 0) {
@@ -118,7 +134,60 @@ async function loadNotes() {
   }
 }
 
+/* ---------- POST: create a note ---------- */
+
+// Returns an error message, or "" when the title is valid.
+function validateTitle(title) {
+  if (title.length === 0) {
+    return "Please enter a title for your note.";
+  }
+  if (title.length > MAX_TITLE_LENGTH) {
+    return `The title must be ${MAX_TITLE_LENGTH} characters or fewer (it is ${title.length}).`;
+  }
+  return "";
+}
+
+async function createNote(event) {
+  event.preventDefault();
+  if (isBusy) {
+    return;
+  }
+
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim(); // the body is optional
+
+  const problem = validateTitle(title);
+  if (problem) {
+    titleInput.setAttribute("aria-invalid", "true");
+    showStatus(problem, "error");
+    titleInput.focus();
+    return;
+  }
+  titleInput.removeAttribute("aria-invalid");
+
+  setBusy(true);
+  showStatus("Saving your note...", "loading");
+
+  try {
+    const { status, data } = await request(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, body, userId: 1 }),
+    });
+
+    addNoteToTop(data);
+    noteForm.reset();
+    showStatus(`Note created (status ${status}, id ${data.id}).`, "success");
+  } catch (error) {
+    console.error(error);
+    showStatus(friendlyError("create the note", error), "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
 /* ---------- Start-up ---------- */
 
 loadBtn.addEventListener("click", loadNotes);
+noteForm.addEventListener("submit", createNote);
 renderNotes([]); // show the empty state before anything is loaded
